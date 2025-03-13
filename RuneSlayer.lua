@@ -102,7 +102,7 @@ local function GetInputRemote(RemoteName: string): RemoteEvent?
 
 	local Remote = Character:FindFirstChild(RemoteName, true)
 
-	task.spawn(assert, Remote, `Could not find the '{RemoteName}' remote within your character.`)
+	task.spawn(assert, Remote, "Could not find the '" .. RemoteName .. "' remote within your character.")
 
 	return Remote
 end
@@ -533,8 +533,8 @@ local Stats = game:GetService("Stats")
 
 task.spawn(function()
 	while getgenv().Flags == Flags and task.wait(0.25) do
-		PingLabel:Set(`Ping: {math.floor(Stats.PerformanceStats.Ping:GetValue() * 100) / 100} ms`)
-		FPSLabel:Set(`FPS: {math.floor(1 / Stats.FrameTime * 10) / 10}/s`)
+		PingLabel:Set("Ping: " .. math.floor(Stats.PerformanceStats.Ping:GetValue() * 100) / 100 .. " ms")
+		FPSLabel:Set("FPS: " .. math.floor(1 / Stats.FrameTime * 10) / 10 .. "/s")
 	end
 end)
 
@@ -1058,7 +1058,7 @@ local function StringFloor(Number): string
 end
 
 local function ESPModel(Model: Model, FlagName: string, OverheadText: string)
-	local FolderName = `{Model.Name}_{FlagName}`
+	local FolderName = Model.Name .. "_" .. FlagName
 
 	if not Flags[FlagName].CurrentValue then
 		local Holder = CoreGui:FindFirstChild(FolderName)

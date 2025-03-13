@@ -130,7 +130,7 @@ task.spawn(function()
 		local Button1 = "✅ Yes"
 		local Button2 = "❌ No"
 
-		local File = `https://raw.githubusercontent.com/boshyxd/encaps-menu/refs/heads/main/RuneSlayer.lua` -- Updated repository link
+		local File = "https://raw.githubusercontent.com/boshyxd/encaps-menu/refs/heads/main/RuneSlayer.lua" -- Updated repository link
 
 		BindableFunction.OnInvoke = function(Button: string)
 			Response = true
@@ -161,7 +161,7 @@ task.spawn(function()
 			end
 
 			SendNotification(
-				`A new Encap's Menu version {Result} has been detected!`,
+				"A new Encap's Menu version " .. Result .. " has been detected!",
 				"Would you like to load it?",
 				math.huge,
 				Button1,
@@ -278,7 +278,7 @@ local Flags: Flags = Rayfield.Flags
 getgenv().Flags = Flags
 
 local Window = Rayfield:CreateWindow({
-	Name = `Encap's Menu | {PlaceName} | {ScriptVersion or "Dev Mode"}`,
+	Name = "Encap's Menu | " .. PlaceName .. " | " .. (ScriptVersion or "Dev Mode"),
 	Icon = "snowflake",
 	LoadingTitle = "❄ Brought to you by Encap ❄",
 	LoadingSubtitle = PlaceName,
@@ -290,7 +290,7 @@ local Window = Rayfield:CreateWindow({
 	ConfigurationSaving = {
 		Enabled = true,
 		FolderName = "EncapMenu",
-		FileName = `{getgenv().PlaceFileName or `DevMode-{game.PlaceId}`}-{Player.Name}`,
+		FileName = (getgenv().PlaceFileName or ("DevMode-" .. game.PlaceId)) .. "-" .. Player.Name,
 	},
 
 	Discord = {
@@ -317,14 +317,17 @@ local Stats = game:GetService("Stats")
 
 task.spawn(function()
 	while getgenv().Flags == Flags and task.wait(0.25) do
-		PingLabel:Set(`Ping: {math.floor(Stats.PerformanceStats.Ping:GetValue() * 100) / 100} ms`)
-		FPSLabel:Set(`FPS: {math.floor(1 / Stats.FrameTime * 10) / 10}/s`)
+		PingLabel:Set("Ping: " .. math.floor(Stats.PerformanceStats.Ping:GetValue() * 100) / 100 .. " ms")
+		FPSLabel:Set("FPS: " .. math.floor(1 / Stats.FrameTime * 10) / 10 .. "/s")
 	end
 end)
 
 Tab:CreateSection("Changelog")
 
-Tab:CreateParagraph({ Title = `{PlaceName} {ScriptVersion}`, Content = getgenv().Changelog or "Changelog Not Found" })
+Tab:CreateParagraph({
+	Title = PlaceName .. " " .. ScriptVersion,
+	Content = getgenv().Changelog or "Changelog Not Found",
+})
 
 --------------------------------------------------------------------------------------------------------------
 
@@ -494,11 +497,11 @@ local Features: FeaturesList = {
 
 getgenv().CreateFeature = function(Tab: Tab, FeatureName: string)
 	if not Features[FeatureName] then
-		return warn(`The feature '{FeatureName}' does not exist in the Features.`)
+		return warn("The feature '" .. FeatureName .. "' does not exist in the Features.")
 	end
 
 	for _, Data in Features[FeatureName] do
-		Tab[`Create{Data.Element}`](Tab, Data.Info)
+		Tab["Create" .. Data.Element](Tab, Data.Info)
 	end
 end
 
@@ -517,7 +520,11 @@ getgenv().CreateUniversalTabs = function()
 		FlagInfo:Set(CurrentValue)
 	end
 
-	Notify("Welcome to Encap's Menu", `Loaded in {math.floor((tick() - StartLoadTime) * 10) / 10}s`, "loader-circle")
+	Notify(
+		"Welcome to Encap's Menu",
+		"Loaded in " .. math.floor((tick() - StartLoadTime) * 10) / 10 .. "s",
+		"loader-circle"
+	)
 end
 
 local EncapStarted = getgenv().EncapStarted
