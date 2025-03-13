@@ -102,7 +102,7 @@ local function GetInputRemote(RemoteName: string): RemoteEvent?
 
 	local Remote = Character:FindFirstChild(RemoteName, true)
 
-	task.spawn(assert, Remote, "Could not find the '" .. RemoteName .. "' remote within your character.")
+	task.spawn(assert, Remote, `Could not find the '{RemoteName}' remote within your character.`)
 
 	return Remote
 end
@@ -180,118 +180,11 @@ end
 
 local Window = getgenv().Window
 
--- Create Teleport UI
-local TeleportUI = Rayfield:CreateWindow({
-	Name = "Teleport Menu",
-	LoadingTitle = "Teleport Menu",
-	LoadingSubtitle = "by Encap",
-	ConfigurationSaving = {
-		Enabled = true,
-		FolderName = "EncapMenu",
-		FileName = "TeleportConfig",
-	},
-})
+local Tab: Tab = Window:CreateTab("Combat", "swords")
 
--- Create Teleport Tab in the Teleport UI
-local TeleportTab = TeleportUI:CreateTab("Teleport", "map")
+Tab:CreateSection("Attacking")
 
-TeleportTab:CreateSection("Areas")
-
--- Get all areas
-local Areas = {}
-for _, Area in workspace:GetChildren() do
-	if Area.Name == "Areas" and Area:IsA("Folder") then
-		for _, SubArea in Area:GetChildren() do
-			table.insert(Areas, SubArea.Name)
-		end
-	end
-end
-
-if #Areas == 0 then
-	-- Fallback if Areas folder not found
-	for _, Area in workspace:GetChildren() do
-		if Area:IsA("Model") or Area:IsA("Folder") then
-			table.insert(Areas, Area.Name)
-		end
-	end
-end
-
-table.sort(Areas)
-
-TeleportTab:CreateDropdown({
-	Name = "🌍 • Teleport to Area",
-	Options = Areas,
-	CurrentOption = "",
-	MultipleOptions = false,
-	Flag = "TeleportArea",
-	Callback = function(Option)
-		local AreaName = Option[1]
-		if AreaName == "" then
-			return
-		end
-
-		-- Try to find the area in the Areas folder first
-		local TargetArea
-		for _, Area in workspace:GetChildren() do
-			if Area.Name == "Areas" and Area:IsA("Folder") then
-				TargetArea = Area:FindFirstChild(AreaName)
-				if TargetArea then
-					break
-				end
-			end
-		end
-
-		-- If not found in Areas folder, try to find it directly in workspace
-		if not TargetArea then
-			TargetArea = workspace:FindFirstChild(AreaName)
-		end
-
-		if not TargetArea then
-			return Notify("Error", "Could not find the selected area.")
-		end
-
-		local Character = Player.Character
-		if not Character then
-			return
-		end
-
-		local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
-		if not HumanoidRootPart then
-			return
-		end
-
-		-- Try to find a spawn location or use the area's position
-		local SpawnLocation = TargetArea:FindFirstChild("SpawnLocation")
-		local TargetPosition
-
-		if SpawnLocation then
-			TargetPosition = SpawnLocation.CFrame + Vector3.new(0, 5, 0)
-		else
-			TargetPosition = CFrame.new(TargetArea:GetPivot().Position + Vector3.new(0, 5, 0))
-		end
-
-		TeleportLocalCharacter(TargetPosition)
-	end,
-})
-
--- Create Combat UI
-local CombatUI = Rayfield:CreateWindow({
-	Name = "Combat Menu",
-	LoadingTitle = "Combat Menu",
-	LoadingSubtitle = "by Encap",
-	ConfigurationSaving = {
-		Enabled = true,
-		FolderName = "EncapMenu",
-		FileName = "CombatConfig",
-	},
-})
-
--- Create Combat Tab in the Combat UI
-local CombatTab = CombatUI:CreateTab("Combat", "swords")
-
-CombatTab:CreateSection("Attacking")
-
-CombatTab:CreateToggle({
+Tab:CreateToggle({
 	Name = ApplyUnsupportedName("⚔ • Auto Attack", Success),
 	CurrentValue = false,
 	Flag = "Attack",
@@ -311,9 +204,9 @@ CombatTab:CreateToggle({
 	end,
 })
 
-CombatTab:CreateSection("Aiming")
+Tab:CreateSection("Aiming")
 
-CombatTab:CreateToggle({
+Tab:CreateToggle({
 	Name = "🎯 • Look At Closest Enemy",
 	CurrentValue = false,
 	Flag = "LookAt",
@@ -366,9 +259,9 @@ CombatTab:CreateToggle({
 	end,
 })
 
-CombatTab:CreateSection("Configuration")
+Tab:CreateSection("Configuration")
 
-CombatTab:CreateSlider({
+Tab:CreateSlider({
 	Name = "📏 • Max Distance",
 	Range = { 1, 100 },
 	Increment = 1,
@@ -377,12 +270,12 @@ CombatTab:CreateSlider({
 	Flag = "Distance",
 })
 
-CombatTab:CreateSection("Moving")
+Tab:CreateSection("Moving")
 
 local MobTween: any
 local ActiveNotification = false
 
-CombatTab:CreateToggle({
+Tab:CreateToggle({
 	Name = "🦌 • Move to Mobs",
 	CurrentValue = false,
 	Flag = "MoveMobs",
@@ -450,17 +343,17 @@ end
 
 table.sort(Mobs)
 
-CombatTab:CreateDropdown({
+Tab:CreateDropdown({
 	Name = "🐔 • Mobs",
 	Options = Mobs,
 	MultipleOptions = true,
 	Flag = "Mobs",
 })
 
-CombatTab:CreateDivider()
+Tab:CreateDivider()
 
 local Dropdown
-Dropdown = CombatTab:CreateDropdown({
+Dropdown = Tab:CreateDropdown({
 	Name = "🐻 • Movement Method",
 	Options = { "Teleport", "Tween" },
 	CurrentOption = "Teleport",
@@ -468,7 +361,7 @@ Dropdown = CombatTab:CreateDropdown({
 	Flag = "MobsMethod",
 })
 
-CombatTab:CreateSlider({
+Tab:CreateSlider({
 	Name = "📐 • Offset",
 	Range = { -10, 10 },
 	Increment = 1,
@@ -477,74 +370,13 @@ CombatTab:CreateSlider({
 	Flag = "Offset",
 })
 
-CombatTab:CreateSlider({
+Tab:CreateSlider({
 	Name = "🔼 • Height Offset",
 	Range = { -10, 10 },
 	Increment = 1,
 	Suffix = "Studs",
 	CurrentValue = 0,
 	Flag = "HeightOffset",
-})
-
--- We can't use Hide() directly, so we'll use a different approach
--- Create a Home tab in the main UI with UI controls
-local Tab: Tab = Window:CreateTab("UI Controls", "sliders")
-
-Tab:CreateSection("Menu Controls")
-
--- Add toggle for Combat UI
-Tab:CreateToggle({
-	Name = "⚔️ • Toggle Combat Menu",
-	CurrentValue = false,
-	Flag = "ShowCombatUI",
-	Callback = function(Value)
-		if Value then
-			getgenv().Window = CombatUI
-		else
-			getgenv().Window = Window
-		end
-	end,
-})
-
--- Add toggle for Teleport UI
-Tab:CreateToggle({
-	Name = "🌐 • Toggle Teleport Menu",
-	CurrentValue = false,
-	Flag = "ShowTeleportUI",
-	Callback = function(Value)
-		if Value then
-			getgenv().Window = TeleportUI
-		else
-			getgenv().Window = Window
-		end
-	end,
-})
-
-Tab:CreateSection("Join our Discord!")
-
-Tab:CreateLabel("discord.gg/sS3tDP6FSB", "messages-square")
-
-Tab:CreateSection("Performance")
-
-local PingLabel = Tab:CreateLabel("Ping: 0 ms", "wifi")
-local FPSLabel = Tab:CreateLabel("FPS: 0/s", "monitor")
-
-local Stats = game:GetService("Stats")
-
-task.spawn(function()
-	while getgenv().Flags == Flags and task.wait(0.25) do
-		PingLabel:Set("Ping: " .. math.floor(Stats.PerformanceStats.Ping:GetValue() * 100) / 100 .. " ms")
-		FPSLabel:Set("FPS: " .. math.floor(1 / Stats.FrameTime * 10) / 10 .. "/s")
-	end
-end)
-
-Tab:CreateSection("Changelog")
-
--- Fix the paragraph component using a different approach
-local VersionTitle = PlaceName .. " " .. ScriptVersion
-Tab:CreateLabel(VersionTitle)
-Tab:CreateParagraph({
-	Content = getgenv().Changelog or "Changelog Not Found",
 })
 
 local Tab: Tab = Window:CreateTab("Resources", "apple")
@@ -911,6 +743,55 @@ Tab:CreateSection("Speed")
 
 CreateFeature(Tab, "Speed")
 
+Tab:CreateSection("Transporation")
+
+local WorldAreas = game:GetService("ReplicatedStorage").WorldModel.Areas
+
+local Areas = {}
+
+for _, Object: Part in WorldAreas:GetChildren() do
+	if table.find(Areas, Object.Name) then
+		continue
+	end
+
+	table.insert(Areas, Object.Name)
+end
+
+local Dropdown
+Dropdown = Tab:CreateDropdown({
+	Name = "🌄 • Teleport to Area",
+	Options = Areas,
+	CurrentOption = "",
+	MultipleOptions = false,
+	Callback = function(CurrentOption: any)
+		CurrentOption = CurrentOption[1]
+
+		if CurrentOption == "" then
+			return
+		end
+
+		local SelectedArea: Part = WorldAreas[CurrentOption]
+
+		local Success = pcall(function()
+			local Result = workspace:Raycast(SelectedArea.Position, Vector3.yAxis * -10000)
+
+			if not Result then
+				return Notify("Failed", "Failed to raycast in this area.")
+			end
+
+			local GoTo = CFrame.new(Result.Position)
+
+			TeleportLocalCharacter(GoTo)
+
+			Dropdown:Set({ "" })
+		end)
+
+		if not Success then
+			return Notify("Error", "Failed to teleport.")
+		end
+	end,
+})
+
 local Tab: Tab = Window:CreateTab("Safety", "shield")
 
 Tab:CreateSection("Damage")
@@ -1058,7 +939,7 @@ local function StringFloor(Number): string
 end
 
 local function ESPModel(Model: Model, FlagName: string, OverheadText: string)
-	local FolderName = Model.Name .. "_" .. FlagName
+	local FolderName = `{Model.Name}_{FlagName}`
 
 	if not Flags[FlagName].CurrentValue then
 		local Holder = CoreGui:FindFirstChild(FolderName)
