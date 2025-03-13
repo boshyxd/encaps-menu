@@ -118,6 +118,7 @@ local function SendNotification(
 	})
 end
 
+--[[ Disabled update checker to prevent redirection to FrostByte's version
 task.spawn(function()
 	if ScriptVersion:sub(1, 1) == "v" then
 		local PlaceFileName = getgenv().PlaceFileName
@@ -129,8 +130,7 @@ task.spawn(function()
 		local Button1 = "✅ Yes"
 		local Button2 = "❌ No"
 
-		local File =
-			`https://raw.githubusercontent.com/alyssagithub/Scripts/refs/heads/main/FrostByte/Games/{PlaceFileName}.lua` -- Still using FrostByte's resources
+		local File = `https://raw.githubusercontent.com/boshyxd/encaps-menu/refs/heads/main/RuneSlayer.lua` -- Updated repository link
 
 		BindableFunction.OnInvoke = function(Button: string)
 			Response = true
@@ -173,6 +173,8 @@ task.spawn(function()
 		end
 	end
 end)
+]]
+--
 
 local VirtualUser = game:GetService("VirtualUser")
 local VirtualInputManager = game:GetService("VirtualInputManager")
@@ -219,7 +221,7 @@ else
 	repeat
 		pcall(function()
 			local Temp = loadstring(game:HttpGet(
-				"https://raw.githubusercontent.com/alyssagithub/Scripts/refs/heads/main/FrostByte/Rayfield.luau" -- Still using FrostByte's resources
+				"https://raw.githubusercontent.com/boshyxd/encaps-menu/refs/heads/main/RayField.lua" -- Updated repository link
 			))
 
 			if not Temp then
@@ -276,10 +278,10 @@ getgenv().Flags = Flags
 
 local Window = Rayfield:CreateWindow({
 	Name = `Encap's Menu | {PlaceName} | {ScriptVersion or "Dev Mode"}`,
-	Icon = "snowflake",
-	LoadingTitle = "❄ Brought to you by Encap ❄",
+	Icon = "rbxassetid://10723424505", -- Modern UI icon
+	LoadingTitle = "Encap's Menu",
 	LoadingSubtitle = PlaceName,
-	Theme = "DarkBlue",
+	Theme = "Midnight", -- Sleeker theme
 
 	DisableRayfieldPrompts = true,
 	DisableBuildWarnings = true,
@@ -299,16 +301,12 @@ local Window = Rayfield:CreateWindow({
 
 getgenv().Window = Window
 
-local Tab: Tab = Window:CreateTab("Home", "snowflake")
-
-Tab:CreateSection("Join our Discord!")
-
-Tab:CreateLabel("discord.gg/sS3tDP6FSB", "messages-square")
+local Tab: Tab = Window:CreateTab("Home", "rbxassetid://10723373967") -- Home icon
 
 Tab:CreateSection("Performance")
 
-local PingLabel = Tab:CreateLabel("Ping: 0 ms", "wifi")
-local FPSLabel = Tab:CreateLabel("FPS: 0/s", "monitor")
+local PingLabel = Tab:CreateLabel("Ping: 0 ms", "rbxassetid://10723407787")
+local FPSLabel = Tab:CreateLabel("FPS: 0/s", "rbxassetid://10723346959")
 
 local Stats = game:GetService("Stats")
 
@@ -514,7 +512,11 @@ getgenv().CreateUniversalTabs = function()
 		FlagInfo:Set(CurrentValue)
 	end
 
-	Notify("Welcome to Encap's Menu", `Loaded in {math.floor((tick() - StartLoadTime) * 10) / 10}s`, "loader-circle")
+	Notify(
+		"Welcome to Encap's Menu",
+		`Loaded in {math.floor((tick() - StartLoadTime) * 10) / 10}s`,
+		"rbxassetid://10723345702"
+	)
 end
 
 local EncapStarted = getgenv().EncapStarted

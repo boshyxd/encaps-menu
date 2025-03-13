@@ -37,7 +37,7 @@ getgenv().Changelog = [[
 
 do
 	local Core = loadstring(
-		game:HttpGet("https://raw.githubusercontent.com/alyssagithub/Scripts/refs/heads/main/FrostByte/Core.lua") -- Still using FrostByte's resources
+		game:HttpGet("https://raw.githubusercontent.com/boshyxd/encaps-menu/refs/heads/main/Core.lua") -- Updated repository link
 	)
 
 	if not Core then
