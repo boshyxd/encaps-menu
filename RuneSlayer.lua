@@ -180,22 +180,10 @@ end
 
 local Window = getgenv().Window
 
--- Create Teleportation UI
-local WorldAreas = game:GetService("ReplicatedStorage").WorldModel.Areas
-
-local Areas = {}
-
-for _, Object: Part in WorldAreas:GetChildren() do
-	if table.find(Areas, Object.Name) then
-		continue
-	end
-
-	table.insert(Areas, Object.Name)
-end
-
+-- Create Teleport UI
 local TeleportUI = Rayfield:CreateWindow({
-	Name = "Teleportation Menu",
-	LoadingTitle = "Teleportation Menu",
+	Name = "Teleport Menu",
+	LoadingTitle = "Teleport Menu",
 	LoadingSubtitle = "by Encap",
 	ConfigurationSaving = {
 		Enabled = true,
@@ -204,45 +192,85 @@ local TeleportUI = Rayfield:CreateWindow({
 	},
 })
 
--- Hide Teleport UI by default
-TeleportUI:Hide()
-
-local TeleportTab = TeleportUI:CreateTab("Locations", "map")
+-- Create Teleport Tab in the Teleport UI
+local TeleportTab = TeleportUI:CreateTab("Teleport", "map")
 
 TeleportTab:CreateSection("Areas")
 
-local Dropdown
-Dropdown = TeleportTab:CreateDropdown({
-	Name = "🌄 • Teleport to Area",
+-- Get all areas
+local Areas = {}
+for _, Area in workspace:GetChildren() do
+	if Area.Name == "Areas" and Area:IsA("Folder") then
+		for _, SubArea in Area:GetChildren() do
+			table.insert(Areas, SubArea.Name)
+		end
+	end
+end
+
+if #Areas == 0 then
+	-- Fallback if Areas folder not found
+	for _, Area in workspace:GetChildren() do
+		if Area:IsA("Model") or Area:IsA("Folder") then
+			table.insert(Areas, Area.Name)
+		end
+	end
+end
+
+table.sort(Areas)
+
+TeleportTab:CreateDropdown({
+	Name = "🌍 • Teleport to Area",
 	Options = Areas,
 	CurrentOption = "",
 	MultipleOptions = false,
-	Callback = function(CurrentOption: any)
-		CurrentOption = CurrentOption[1]
-
-		if CurrentOption == "" then
+	Flag = "TeleportArea",
+	Callback = function(Option)
+		local AreaName = Option[1]
+		if AreaName == "" then
 			return
 		end
 
-		local SelectedArea: Part = WorldAreas[CurrentOption]
-
-		local Success = pcall(function()
-			local Result = workspace:Raycast(SelectedArea.Position, Vector3.yAxis * -10000)
-
-			if not Result then
-				return Notify("Failed", "Failed to raycast in this area.")
+		-- Try to find the area in the Areas folder first
+		local TargetArea
+		for _, Area in workspace:GetChildren() do
+			if Area.Name == "Areas" and Area:IsA("Folder") then
+				TargetArea = Area:FindFirstChild(AreaName)
+				if TargetArea then
+					break
+				end
 			end
-
-			local GoTo = CFrame.new(Result.Position)
-
-			TeleportLocalCharacter(GoTo)
-
-			Dropdown:Set({ "" })
-		end)
-
-		if not Success then
-			return Notify("Error", "Failed to teleport.")
 		end
+
+		-- If not found in Areas folder, try to find it directly in workspace
+		if not TargetArea then
+			TargetArea = workspace:FindFirstChild(AreaName)
+		end
+
+		if not TargetArea then
+			return Notify("Error", "Could not find the selected area.")
+		end
+
+		local Character = Player.Character
+		if not Character then
+			return
+		end
+
+		local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+		if not HumanoidRootPart then
+			return
+		end
+
+		-- Try to find a spawn location or use the area's position
+		local SpawnLocation = TargetArea:FindFirstChild("SpawnLocation")
+		local TargetPosition
+
+		if SpawnLocation then
+			TargetPosition = SpawnLocation.CFrame + Vector3.new(0, 5, 0)
+		else
+			TargetPosition = CFrame.new(TargetArea:GetPivot().Position + Vector3.new(0, 5, 0))
+		end
+
+		TeleportLocalCharacter(TargetPosition)
 	end,
 })
 
@@ -257,9 +285,6 @@ local CombatUI = Rayfield:CreateWindow({
 		FileName = "CombatConfig",
 	},
 })
-
--- Hide Combat UI by default
-CombatUI:Hide()
 
 -- Create Combat Tab in the Combat UI
 local CombatTab = CombatUI:CreateTab("Combat", "swords")
@@ -461,6 +486,7 @@ CombatTab:CreateSlider({
 	Flag = "HeightOffset",
 })
 
+-- We can't use Hide() directly, so we'll use a different approach
 -- Create a Home tab in the main UI with UI controls
 local Tab: Tab = Window:CreateTab("UI Controls", "sliders")
 
@@ -473,9 +499,9 @@ Tab:CreateToggle({
 	Flag = "ShowCombatUI",
 	Callback = function(Value)
 		if Value then
-			CombatUI:Show()
+			getgenv().Window = CombatUI
 		else
-			CombatUI:Hide()
+			getgenv().Window = Window
 		end
 	end,
 })
@@ -487,9 +513,9 @@ Tab:CreateToggle({
 	Flag = "ShowTeleportUI",
 	Callback = function(Value)
 		if Value then
-			TeleportUI:Show()
+			getgenv().Window = TeleportUI
 		else
-			TeleportUI:Hide()
+			getgenv().Window = Window
 		end
 	end,
 })
@@ -514,7 +540,12 @@ end)
 
 Tab:CreateSection("Changelog")
 
-Tab:CreateParagraph({ Title = `{PlaceName} {ScriptVersion}`, Content = getgenv().Changelog or "Changelog Not Found" })
+-- Fix the paragraph component using a different approach
+local VersionTitle = PlaceName .. " " .. ScriptVersion
+Tab:CreateLabel(VersionTitle)
+Tab:CreateParagraph({
+	Content = getgenv().Changelog or "Changelog Not Found",
+})
 
 local Tab: Tab = Window:CreateTab("Resources", "apple")
 
