@@ -234,6 +234,7 @@ else
 	until Rayfield
 end
 
+getgenv().Rayfield = Rayfield
 getgenv().Initiated = nil
 
 type Element = {

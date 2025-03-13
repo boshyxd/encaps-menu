@@ -180,6 +180,72 @@ end
 
 local Window = getgenv().Window
 
+-- Create Teleportation UI
+local WorldAreas = game:GetService("ReplicatedStorage").WorldModel.Areas
+
+local Areas = {}
+
+for _, Object: Part in WorldAreas:GetChildren() do
+	if table.find(Areas, Object.Name) then
+		continue
+	end
+
+	table.insert(Areas, Object.Name)
+end
+
+local TeleportUI = Rayfield:CreateWindow({
+	Name = "Teleportation Menu",
+	LoadingTitle = "Teleportation Menu",
+	LoadingSubtitle = "by Encap",
+	ConfigurationSaving = {
+		Enabled = true,
+		FolderName = "EncapMenu",
+		FileName = "TeleportConfig",
+	},
+})
+
+-- Hide Teleport UI by default
+TeleportUI:Hide()
+
+local TeleportTab = TeleportUI:CreateTab("Locations", "map")
+
+TeleportTab:CreateSection("Areas")
+
+local Dropdown
+Dropdown = TeleportTab:CreateDropdown({
+	Name = "🌄 • Teleport to Area",
+	Options = Areas,
+	CurrentOption = "",
+	MultipleOptions = false,
+	Callback = function(CurrentOption: any)
+		CurrentOption = CurrentOption[1]
+
+		if CurrentOption == "" then
+			return
+		end
+
+		local SelectedArea: Part = WorldAreas[CurrentOption]
+
+		local Success = pcall(function()
+			local Result = workspace:Raycast(SelectedArea.Position, Vector3.yAxis * -10000)
+
+			if not Result then
+				return Notify("Failed", "Failed to raycast in this area.")
+			end
+
+			local GoTo = CFrame.new(Result.Position)
+
+			TeleportLocalCharacter(GoTo)
+
+			Dropdown:Set({ "" })
+		end)
+
+		if not Success then
+			return Notify("Error", "Failed to teleport.")
+		end
+	end,
+})
+
 -- Create Combat UI
 local CombatUI = Rayfield:CreateWindow({
 	Name = "Combat Menu",
@@ -1213,72 +1279,6 @@ Tab:CreateToggle({
 			end
 
 			FogObjects = {}
-		end
-	end,
-})
-
--- Create Teleportation UI
-local WorldAreas = game:GetService("ReplicatedStorage").WorldModel.Areas
-
-local Areas = {}
-
-for _, Object: Part in WorldAreas:GetChildren() do
-	if table.find(Areas, Object.Name) then
-		continue
-	end
-
-	table.insert(Areas, Object.Name)
-end
-
-local TeleportUI = Rayfield:CreateWindow({
-	Name = "Teleportation Menu",
-	LoadingTitle = "Teleportation Menu",
-	LoadingSubtitle = "by Encap",
-	ConfigurationSaving = {
-		Enabled = true,
-		FolderName = "EncapMenu",
-		FileName = "TeleportConfig",
-	},
-})
-
--- Hide Teleport UI by default
-TeleportUI:Hide()
-
-local TeleportTab = TeleportUI:CreateTab("Locations", "map")
-
-TeleportTab:CreateSection("Areas")
-
-local Dropdown
-Dropdown = TeleportTab:CreateDropdown({
-	Name = "🌄 • Teleport to Area",
-	Options = Areas,
-	CurrentOption = "",
-	MultipleOptions = false,
-	Callback = function(CurrentOption: any)
-		CurrentOption = CurrentOption[1]
-
-		if CurrentOption == "" then
-			return
-		end
-
-		local SelectedArea: Part = WorldAreas[CurrentOption]
-
-		local Success = pcall(function()
-			local Result = workspace:Raycast(SelectedArea.Position, Vector3.yAxis * -10000)
-
-			if not Result then
-				return Notify("Failed", "Failed to raycast in this area.")
-			end
-
-			local GoTo = CFrame.new(Result.Position)
-
-			TeleportLocalCharacter(GoTo)
-
-			Dropdown:Set({ "" })
-		end)
-
-		if not Success then
-			return Notify("Error", "Failed to teleport.")
 		end
 	end,
 })
