@@ -180,11 +180,27 @@ end
 
 local Window = getgenv().Window
 
-local Tab: Tab = Window:CreateTab("Combat", "swords")
+-- Create Combat UI
+local CombatUI = Rayfield:CreateWindow({
+	Name = "Combat Menu",
+	LoadingTitle = "Combat Menu",
+	LoadingSubtitle = "by Encap",
+	ConfigurationSaving = {
+		Enabled = true,
+		FolderName = "EncapMenu",
+		FileName = "CombatConfig",
+	},
+})
 
-Tab:CreateSection("Attacking")
+-- Hide Combat UI by default
+CombatUI:Hide()
 
-Tab:CreateToggle({
+-- Create Combat Tab in the Combat UI
+local CombatTab = CombatUI:CreateTab("Combat", "swords")
+
+CombatTab:CreateSection("Attacking")
+
+CombatTab:CreateToggle({
 	Name = ApplyUnsupportedName("⚔ • Auto Attack", Success),
 	CurrentValue = false,
 	Flag = "Attack",
@@ -204,9 +220,9 @@ Tab:CreateToggle({
 	end,
 })
 
-Tab:CreateSection("Aiming")
+CombatTab:CreateSection("Aiming")
 
-Tab:CreateToggle({
+CombatTab:CreateToggle({
 	Name = "🎯 • Look At Closest Enemy",
 	CurrentValue = false,
 	Flag = "LookAt",
@@ -259,9 +275,9 @@ Tab:CreateToggle({
 	end,
 })
 
-Tab:CreateSection("Configuration")
+CombatTab:CreateSection("Configuration")
 
-Tab:CreateSlider({
+CombatTab:CreateSlider({
 	Name = "📏 • Max Distance",
 	Range = { 1, 100 },
 	Increment = 1,
@@ -270,12 +286,12 @@ Tab:CreateSlider({
 	Flag = "Distance",
 })
 
-Tab:CreateSection("Moving")
+CombatTab:CreateSection("Moving")
 
 local MobTween: any
 local ActiveNotification = false
 
-Tab:CreateToggle({
+CombatTab:CreateToggle({
 	Name = "🦌 • Move to Mobs",
 	CurrentValue = false,
 	Flag = "MoveMobs",
@@ -343,17 +359,17 @@ end
 
 table.sort(Mobs)
 
-Tab:CreateDropdown({
+CombatTab:CreateDropdown({
 	Name = "🐔 • Mobs",
 	Options = Mobs,
 	MultipleOptions = true,
 	Flag = "Mobs",
 })
 
-Tab:CreateDivider()
+CombatTab:CreateDivider()
 
 local Dropdown
-Dropdown = Tab:CreateDropdown({
+Dropdown = CombatTab:CreateDropdown({
 	Name = "🐻 • Movement Method",
 	Options = { "Teleport", "Tween" },
 	CurrentOption = "Teleport",
@@ -361,7 +377,7 @@ Dropdown = Tab:CreateDropdown({
 	Flag = "MobsMethod",
 })
 
-Tab:CreateSlider({
+CombatTab:CreateSlider({
 	Name = "📐 • Offset",
 	Range = { -10, 10 },
 	Increment = 1,
@@ -370,7 +386,7 @@ Tab:CreateSlider({
 	Flag = "Offset",
 })
 
-Tab:CreateSlider({
+CombatTab:CreateSlider({
 	Name = "🔼 • Height Offset",
 	Range = { -10, 10 },
 	Increment = 1,
@@ -378,6 +394,61 @@ Tab:CreateSlider({
 	CurrentValue = 0,
 	Flag = "HeightOffset",
 })
+
+-- Create a Home tab in the main UI with UI controls
+local Tab: Tab = Window:CreateTab("UI Controls", "sliders")
+
+Tab:CreateSection("Menu Controls")
+
+-- Add toggle for Combat UI
+Tab:CreateToggle({
+	Name = "⚔️ • Toggle Combat Menu",
+	CurrentValue = false,
+	Flag = "ShowCombatUI",
+	Callback = function(Value)
+		if Value then
+			CombatUI:Show()
+		else
+			CombatUI:Hide()
+		end
+	end,
+})
+
+-- Add toggle for Teleport UI
+Tab:CreateToggle({
+	Name = "🌐 • Toggle Teleport Menu",
+	CurrentValue = false,
+	Flag = "ShowTeleportUI",
+	Callback = function(Value)
+		if Value then
+			TeleportUI:Show()
+		else
+			TeleportUI:Hide()
+		end
+	end,
+})
+
+Tab:CreateSection("Join our Discord!")
+
+Tab:CreateLabel("discord.gg/sS3tDP6FSB", "messages-square")
+
+Tab:CreateSection("Performance")
+
+local PingLabel = Tab:CreateLabel("Ping: 0 ms", "wifi")
+local FPSLabel = Tab:CreateLabel("FPS: 0/s", "monitor")
+
+local Stats = game:GetService("Stats")
+
+task.spawn(function()
+	while getgenv().Flags == Flags and task.wait(0.25) do
+		PingLabel:Set(`Ping: {math.floor(Stats.PerformanceStats.Ping:GetValue() * 100) / 100} ms`)
+		FPSLabel:Set(`FPS: {math.floor(1 / Stats.FrameTime * 10) / 10}/s`)
+	end
+end)
+
+Tab:CreateSection("Changelog")
+
+Tab:CreateParagraph({ Title = `{PlaceName} {ScriptVersion}`, Content = getgenv().Changelog or "Changelog Not Found" })
 
 local Tab: Tab = Window:CreateTab("Resources", "apple")
 
@@ -743,55 +814,6 @@ Tab:CreateSection("Speed")
 
 CreateFeature(Tab, "Speed")
 
-Tab:CreateSection("Transporation")
-
-local WorldAreas = game:GetService("ReplicatedStorage").WorldModel.Areas
-
-local Areas = {}
-
-for _, Object: Part in WorldAreas:GetChildren() do
-	if table.find(Areas, Object.Name) then
-		continue
-	end
-
-	table.insert(Areas, Object.Name)
-end
-
-local Dropdown
-Dropdown = Tab:CreateDropdown({
-	Name = "🌄 • Teleport to Area",
-	Options = Areas,
-	CurrentOption = "",
-	MultipleOptions = false,
-	Callback = function(CurrentOption: any)
-		CurrentOption = CurrentOption[1]
-
-		if CurrentOption == "" then
-			return
-		end
-
-		local SelectedArea: Part = WorldAreas[CurrentOption]
-
-		local Success = pcall(function()
-			local Result = workspace:Raycast(SelectedArea.Position, Vector3.yAxis * -10000)
-
-			if not Result then
-				return Notify("Failed", "Failed to raycast in this area.")
-			end
-
-			local GoTo = CFrame.new(Result.Position)
-
-			TeleportLocalCharacter(GoTo)
-
-			Dropdown:Set({ "" })
-		end)
-
-		if not Success then
-			return Notify("Error", "Failed to teleport.")
-		end
-	end,
-})
-
 local Tab: Tab = Window:CreateTab("Safety", "shield")
 
 Tab:CreateSection("Damage")
@@ -923,6 +945,15 @@ local Tab: Tab = Window:CreateTab("Visuals", "sparkles")
 
 Tab:CreateSection("ESP")
 
+Tab:CreateSlider({
+	Name = "📏 • ESP Max Distance",
+	Range = { 10, 500 },
+	Increment = 10,
+	Suffix = "Studs",
+	CurrentValue = 200,
+	Flag = "ESPDistance",
+})
+
 local CoreGui: Folder = game:GetService("CoreGui")
 
 local function StringFloor(Number): string
@@ -1004,7 +1035,7 @@ local function ESPModel(Model: Model, FlagName: string, OverheadText: string)
 		HealthBarBackground.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 		HealthBarBackground.BorderSizePixel = 0
 		HealthBarBackground.Position = UDim2.new(0, 0, 0, 55)
-		HealthBarBackground.Size = UDim2.new(1, 0, 0, 10)
+		HealthBarBackground.Size = UDim2.new(1, 0, 0, 5)
 		HealthBarBackground.ZIndex = 9
 		HealthBarBackground.Parent = BillboardGui
 
@@ -1037,6 +1068,23 @@ local function ESPModel(Model: Model, FlagName: string, OverheadText: string)
 			Holder:Destroy()
 			RenderSteppedConnection:Disconnect()
 			return
+		end
+
+		-- Check if model is within ESP distance range
+		if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+			local Distance = (Model:GetPivot().Position - Player.Character:GetPivot().Position).Magnitude
+
+			-- Hide ESP if beyond the max distance
+			if Distance > Flags.ESPDistance.CurrentValue then
+				for _, Object in Holder:GetChildren() do
+					Object.Enabled = false
+				end
+				return
+			else
+				for _, Object in Holder:GetChildren() do
+					Object.Enabled = true
+				end
+			end
 		end
 
 		local DisplayText = OverheadText
@@ -1165,6 +1213,72 @@ Tab:CreateToggle({
 			end
 
 			FogObjects = {}
+		end
+	end,
+})
+
+-- Create Teleportation UI
+local WorldAreas = game:GetService("ReplicatedStorage").WorldModel.Areas
+
+local Areas = {}
+
+for _, Object: Part in WorldAreas:GetChildren() do
+	if table.find(Areas, Object.Name) then
+		continue
+	end
+
+	table.insert(Areas, Object.Name)
+end
+
+local TeleportUI = Rayfield:CreateWindow({
+	Name = "Teleportation Menu",
+	LoadingTitle = "Teleportation Menu",
+	LoadingSubtitle = "by Encap",
+	ConfigurationSaving = {
+		Enabled = true,
+		FolderName = "EncapMenu",
+		FileName = "TeleportConfig",
+	},
+})
+
+-- Hide Teleport UI by default
+TeleportUI:Hide()
+
+local TeleportTab = TeleportUI:CreateTab("Locations", "map")
+
+TeleportTab:CreateSection("Areas")
+
+local Dropdown
+Dropdown = TeleportTab:CreateDropdown({
+	Name = "🌄 • Teleport to Area",
+	Options = Areas,
+	CurrentOption = "",
+	MultipleOptions = false,
+	Callback = function(CurrentOption: any)
+		CurrentOption = CurrentOption[1]
+
+		if CurrentOption == "" then
+			return
+		end
+
+		local SelectedArea: Part = WorldAreas[CurrentOption]
+
+		local Success = pcall(function()
+			local Result = workspace:Raycast(SelectedArea.Position, Vector3.yAxis * -10000)
+
+			if not Result then
+				return Notify("Failed", "Failed to raycast in this area.")
+			end
+
+			local GoTo = CFrame.new(Result.Position)
+
+			TeleportLocalCharacter(GoTo)
+
+			Dropdown:Set({ "" })
+		end)
+
+		if not Success then
+			return Notify("Error", "Failed to teleport.")
 		end
 	end,
 })
