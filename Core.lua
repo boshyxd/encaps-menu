@@ -278,7 +278,7 @@ getgenv().Flags = Flags
 
 local Window = Rayfield:CreateWindow({
 	Name = `Encap's Menu | {PlaceName} | {ScriptVersion or "Dev Mode"}`,
-	Icon = "rbxassetid://10723424505", -- Modern UI icon
+	Icon = "rbxassetid://4483345998", -- Default Rayfield icon
 	LoadingTitle = "Encap's Menu",
 	LoadingSubtitle = PlaceName,
 	Theme = "Midnight", -- Sleeker theme
@@ -301,12 +301,12 @@ local Window = Rayfield:CreateWindow({
 
 getgenv().Window = Window
 
-local Tab: Tab = Window:CreateTab("Home", "rbxassetid://10723373967") -- Home icon
+local Tab: Tab = Window:CreateTab("Home", "home")
 
 Tab:CreateSection("Performance")
 
-local PingLabel = Tab:CreateLabel("Ping: 0 ms", "rbxassetid://10723407787")
-local FPSLabel = Tab:CreateLabel("FPS: 0/s", "rbxassetid://10723346959")
+local PingLabel = Tab:CreateLabel("Ping: 0 ms", "wifi")
+local FPSLabel = Tab:CreateLabel("FPS: 0/s", "monitor")
 
 local Stats = game:GetService("Stats")
 
@@ -512,11 +512,7 @@ getgenv().CreateUniversalTabs = function()
 		FlagInfo:Set(CurrentValue)
 	end
 
-	Notify(
-		"Welcome to Encap's Menu",
-		`Loaded in {math.floor((tick() - StartLoadTime) * 10) / 10}s`,
-		"rbxassetid://10723345702"
-	)
+	Notify("Welcome to Encap's Menu", `Loaded in {math.floor((tick() - StartLoadTime) * 10) / 10}s`, "success")
 end
 
 local EncapStarted = getgenv().EncapStarted
