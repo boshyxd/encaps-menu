@@ -993,6 +993,31 @@ local function ESPModel(Model: Model, FlagName: string, OverheadText: string)
 	TextLabel.ZIndex = 10
 	TextLabel.Parent = BillboardGui
 
+	-- Add health bar for mobs
+	local HealthBarBackground
+	local HealthBarFill
+
+	if FlagName == "MobESP" then
+		-- Health bar background
+		HealthBarBackground = Instance.new("Frame")
+		HealthBarBackground.Name = "HealthBarBackground"
+		HealthBarBackground.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+		HealthBarBackground.BorderSizePixel = 0
+		HealthBarBackground.Position = UDim2.new(0, 0, 0, 55)
+		HealthBarBackground.Size = UDim2.new(1, 0, 0, 10)
+		HealthBarBackground.ZIndex = 9
+		HealthBarBackground.Parent = BillboardGui
+
+		-- Health bar fill
+		HealthBarFill = Instance.new("Frame")
+		HealthBarFill.Name = "HealthBarFill"
+		HealthBarFill.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+		HealthBarFill.BorderSizePixel = 0
+		HealthBarFill.Size = UDim2.new(1, 0, 1, 0)
+		HealthBarFill.ZIndex = 10
+		HealthBarFill.Parent = HealthBarBackground
+	end
+
 	local RenderSteppedConnection: RBXScriptConnection
 	RenderSteppedConnection = RunService.RenderStepped:Connect(function()
 		if not Flags[FlagName].CurrentValue then
@@ -1014,27 +1039,48 @@ local function ESPModel(Model: Model, FlagName: string, OverheadText: string)
 			return
 		end
 
-		OverheadText = OverheadText:gsub("<NAME>", Model.Name)
+		local DisplayText = OverheadText
+		DisplayText = DisplayText:gsub("<n>", Model.Name)
 
-		if Player.Character and Player.Character:FindFirstChild("Humanoid") then
+		if FlagName == "PlayerESP" and Player.Character and Player.Character:FindFirstChild("Humanoid") then
 			local Distance = math.floor((Model:GetPivot().Position - Player.Character:GetPivot().Position).Magnitude)
-			OverheadText = OverheadText:gsub("<DISTANCE>", StringFloor(Distance))
+			DisplayText = DisplayText:gsub("<DISTANCE>", StringFloor(Distance))
 		end
 
 		if ModelHumanoid then
-			OverheadText = OverheadText:gsub("<HEALTH>", StringFloor(ModelHumanoid.Health))
-			OverheadText = OverheadText:gsub("<MAXHEALTH>", StringFloor(ModelHumanoid.MaxHealth))
-			OverheadText = OverheadText:gsub(
+			DisplayText = DisplayText:gsub("<HEALTH>", StringFloor(ModelHumanoid.Health))
+			DisplayText = DisplayText:gsub("<MAXHEALTH>", StringFloor(ModelHumanoid.MaxHealth))
+			DisplayText = DisplayText:gsub(
 				"<HEALTHPERCENTAGE>",
 				StringFloor(ModelHumanoid.Health / ModelHumanoid.MaxHealth * 100)
 			)
+
+			-- Update health bar for mobs
+			if FlagName == "MobESP" and HealthBarFill then
+				local HealthPercent = ModelHumanoid.Health / ModelHumanoid.MaxHealth
+				HealthBarFill.Size = UDim2.new(HealthPercent, 0, 1, 0)
+
+				-- Change color based on health percentage
+				local r, g = 255, 50
+				if HealthPercent > 0.5 then
+					-- Transition from red to green as health increases
+					r = 255 - (HealthPercent - 0.5) * 2 * 205
+					g = 50 + (HealthPercent - 0.5) * 2 * 205
+				else
+					-- Transition from yellow to red as health decreases
+					r = 255
+					g = 50 + HealthPercent * 2 * 205
+				end
+
+				HealthBarFill.BackgroundColor3 = Color3.fromRGB(r, g, 50)
+			end
 		end
 
-		TextLabel.Text = OverheadText
+		TextLabel.Text = DisplayText
 	end)
 end
 
-local PlayerText = "Player: <NAME> | Health: <HEALTH>/<MAXHEALTH> (<HEALTHPERCENTAGE>%) | Distance: <DISTANCE>"
+local PlayerText = "Player: <n> | Health: <HEALTH>/<MAXHEALTH> (<HEALTHPERCENTAGE>%) | Distance: <DISTANCE>"
 
 local function PlayerESP(TargetPlayer: Player)
 	local function BeginEsp(NewCharacter: Model)
@@ -1065,7 +1111,7 @@ Tab:CreateToggle({
 
 HandleConnection(Players.PlayerAdded:Connect(PlayerESP), "PlayerESP")
 
-local MobText = "Mob: <NAME> | Health: <HEALTH>/<MAXHEALTH> (<HEALTHPERCENTAGE>%) | Distance: <DISTANCE>"
+local MobText = "Mob: <n> | Health: <HEALTH>/<MAXHEALTH> (<HEALTHPERCENTAGE>%)"
 
 local function MobESP(Mob: Model)
 	if not Mob:GetAttribute("NPC") then
