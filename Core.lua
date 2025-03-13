@@ -278,10 +278,10 @@ getgenv().Flags = Flags
 
 local Window = Rayfield:CreateWindow({
 	Name = `Encap's Menu | {PlaceName} | {ScriptVersion or "Dev Mode"}`,
-	Icon = "rbxassetid://4483345998", -- Default Rayfield icon
-	LoadingTitle = "Encap's Menu",
+	Icon = "snowflake",
+	LoadingTitle = "❄ Brought to you by Encap ❄",
 	LoadingSubtitle = PlaceName,
-	Theme = "Midnight", -- Sleeker theme
+	Theme = "DarkBlue",
 
 	DisableRayfieldPrompts = true,
 	DisableBuildWarnings = true,
@@ -301,7 +301,11 @@ local Window = Rayfield:CreateWindow({
 
 getgenv().Window = Window
 
-local Tab: Tab = Window:CreateTab("Home", "home")
+local Tab: Tab = Window:CreateTab("Home", "snowflake")
+
+Tab:CreateSection("Join our Discord!")
+
+Tab:CreateLabel("discord.gg/sS3tDP6FSB", "messages-square")
 
 Tab:CreateSection("Performance")
 
@@ -512,7 +516,7 @@ getgenv().CreateUniversalTabs = function()
 		FlagInfo:Set(CurrentValue)
 	end
 
-	Notify("Welcome to Encap's Menu", `Loaded in {math.floor((tick() - StartLoadTime) * 10) / 10}s`, "success")
+	Notify("Welcome to Encap's Menu", `Loaded in {math.floor((tick() - StartLoadTime) * 10) / 10}s`, "loader-circle")
 end
 
 local EncapStarted = getgenv().EncapStarted
