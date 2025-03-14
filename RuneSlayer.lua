@@ -925,7 +925,7 @@ Tab:CreateSection("ESP")
 
 Tab:CreateSlider({
 	Name = "📏 • ESP Max Distance",
-	Range = { 10, 500 },
+	Range = { 500, 5000 },
 	Increment = 10,
 	Suffix = "Studs",
 	CurrentValue = 200,
@@ -939,6 +939,10 @@ local function StringFloor(Number): string
 end
 
 local function ESPModel(Model: Model, FlagName: string, OverheadText: string)
+	if not Model or not Model.Parent then
+		return
+	end
+
 	local FolderName = `{Model.Name}_{FlagName}`
 
 	if not Flags[FlagName].CurrentValue then
@@ -964,6 +968,19 @@ local function ESPModel(Model: Model, FlagName: string, OverheadText: string)
 	local Holder = Instance.new("Folder")
 	Holder.Name = FolderName
 	Holder.Parent = CoreGui
+
+	-- Connect to model's AncestryChanged to clean up ESP when model is destroyed
+	local AncestryConnection
+	AncestryConnection = Model.AncestryChanged:Connect(function(_, parent)
+		if not parent then
+			if Holder and Holder.Parent then
+				Holder:Destroy()
+			end
+			if AncestryConnection then
+				AncestryConnection:Disconnect()
+			end
+		end
+	end)
 
 	for _, Object in Model:GetChildren() do
 		if not Object:IsA("BasePart") and not Object:IsA("Model") then
@@ -998,7 +1015,7 @@ local function ESPModel(Model: Model, FlagName: string, OverheadText: string)
 	TextLabel.TextColor3 = Color3.new(1, 1, 1)
 	TextLabel.TextStrokeTransparency = 0
 	TextLabel.TextYAlignment = Enum.TextYAlignment.Bottom
-	TextLabel.Text = "Unloaded"
+	TextLabel.Text = "Loading..."
 	TextLabel.ZIndex = 10
 	TextLabel.Parent = BillboardGui
 
@@ -1030,7 +1047,19 @@ local function ESPModel(Model: Model, FlagName: string, OverheadText: string)
 	local RenderSteppedConnection: RBXScriptConnection
 	RenderSteppedConnection = RunService.RenderStepped:Connect(function()
 		if not Flags[FlagName].CurrentValue then
-			Holder:Destroy()
+			-- Instead of destroying immediately, properly clean up
+			for _, Object in Holder:GetChildren() do
+				if Object:IsA("BoxHandleAdornment") then
+					Object.Transparency = 1
+				elseif Object:IsA("BillboardGui") then
+					Object.Enabled = false
+				end
+			end
+			task.delay(1, function()
+				if Holder and Holder.Parent then
+					Holder:Destroy()
+				end
+			end)
 			RenderSteppedConnection:Disconnect()
 			return
 		end
@@ -1042,34 +1071,46 @@ local function ESPModel(Model: Model, FlagName: string, OverheadText: string)
 
 		local ModelHumanoid = Model and Model:FindFirstChild("Humanoid") :: Humanoid
 
-		if not Model or not Model.Parent or (ModelHumanoid and ModelHumanoid.Health == 0) then
+		if not Model or not Model.Parent or (ModelHumanoid and ModelHumanoid.Health <= 0) then
 			Holder:Destroy()
 			RenderSteppedConnection:Disconnect()
 			return
 		end
 
 		-- Check if model is within ESP distance range
+		local Distance = math.huge
 		if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-			local Distance = (Model:GetPivot().Position - Player.Character:GetPivot().Position).Magnitude
+			Distance = (Model:GetPivot().Position - Player.Character:GetPivot().Position).Magnitude
 
 			-- Hide ESP if beyond the max distance
 			if Distance > Flags.ESPDistance.CurrentValue then
+				-- Hide all ESP elements when beyond distance
 				for _, Object in Holder:GetChildren() do
-					Object.Enabled = false
+					if Object:IsA("BoxHandleAdornment") then
+						Object.Transparency = 1
+					elseif Object:IsA("BillboardGui") then
+						Object.Enabled = false
+					end
 				end
 				return
 			else
+				-- Show all ESP elements when within distance
 				for _, Object in Holder:GetChildren() do
-					Object.Enabled = true
+					if Object:IsA("BoxHandleAdornment") then
+						Object.Transparency = 0.5
+					elseif Object:IsA("BillboardGui") then
+						Object.Enabled = true
+					end
 				end
 			end
 		end
 
+		-- Update the display text with actual values
 		local DisplayText = OverheadText
 		DisplayText = DisplayText:gsub("<n>", Model.Name)
 
-		if FlagName == "PlayerESP" and Player.Character and Player.Character:FindFirstChild("Humanoid") then
-			local Distance = math.floor((Model:GetPivot().Position - Player.Character:GetPivot().Position).Magnitude)
+		-- Always update distance for both player and mob ESP
+		if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
 			DisplayText = DisplayText:gsub("<DISTANCE>", StringFloor(Distance))
 		end
 
@@ -1102,7 +1143,16 @@ local function ESPModel(Model: Model, FlagName: string, OverheadText: string)
 			end
 		end
 
-		TextLabel.Text = DisplayText
+		-- Only update text if BillboardGui is enabled
+		for _, Object in Holder:GetChildren() do
+			if Object:IsA("BillboardGui") and Object.Enabled then
+				for _, Child in Object:GetChildren() do
+					if Child:IsA("TextLabel") then
+						Child.Text = DisplayText
+					end
+				end
+			end
+		end
 	end)
 end
 
@@ -1125,19 +1175,69 @@ Tab:CreateToggle({
 	CurrentValue = false,
 	Flag = "PlayerESP",
 	Callback = function(Value)
-		for _, TargetPlayer in Players:GetPlayers() do
-			if TargetPlayer == Player then
-				continue
+		-- First handle existing ESP elements
+		for _, Existing in CoreGui:GetChildren() do
+			if Existing.Name:find("_PlayerESP") then
+				if not Value then
+					-- Clean up properly
+					for _, Object in Existing:GetChildren() do
+						if Object:IsA("BoxHandleAdornment") then
+							Object.Transparency = 1
+						elseif Object:IsA("BillboardGui") then
+							Object.Enabled = false
+						end
+					end
+					task.delay(1, function()
+						if Existing and Existing.Parent then
+							Existing:Destroy()
+						end
+					end)
+				end
 			end
+		end
 
-			PlayerESP(TargetPlayer)
+		-- Then create new ESP for players if enabled
+		if Value then
+			for _, TargetPlayer in Players:GetPlayers() do
+				if TargetPlayer == Player then
+					continue
+				end
+
+				PlayerESP(TargetPlayer)
+			end
 		end
 	end,
 })
 
-HandleConnection(Players.PlayerAdded:Connect(PlayerESP), "PlayerESP")
+-- Improved player joining handler
+local function OnPlayerAdded(TargetPlayer)
+	if TargetPlayer == Player then
+		return
+	end
 
-local MobText = "Mob: <n> | Health: <HEALTH>/<MAXHEALTH> (<HEALTHPERCENTAGE>%)"
+	if Flags.PlayerESP and Flags.PlayerESP.CurrentValue then
+		PlayerESP(TargetPlayer)
+	end
+
+	-- Also handle when player's character is added
+	TargetPlayer.CharacterAdded:Connect(function(Character)
+		if Flags.PlayerESP and Flags.PlayerESP.CurrentValue then
+			ESPModel(Character, "PlayerESP", PlayerText)
+		end
+	end)
+end
+
+-- Connect to PlayerAdded event
+HandleConnection(Players.PlayerAdded:Connect(OnPlayerAdded), "PlayerESP")
+
+-- Apply to existing players
+for _, TargetPlayer in Players:GetPlayers() do
+	if TargetPlayer ~= Player then
+		OnPlayerAdded(TargetPlayer)
+	end
+end
+
+local MobText = "Mob: <n> | Health: <HEALTH>/<MAXHEALTH> (<HEALTHPERCENTAGE>%) | Distance: <DISTANCE>"
 
 local function MobESP(Mob: Model)
 	if not Mob:GetAttribute("NPC") then
@@ -1152,13 +1252,59 @@ Tab:CreateToggle({
 	CurrentValue = false,
 	Flag = "MobESP",
 	Callback = function(Value)
-		for _, Mob: Model in workspace.Alive:GetChildren() do
-			MobESP(Mob)
+		-- First handle existing ESP elements
+		for _, Existing in CoreGui:GetChildren() do
+			if Existing.Name:find("_MobESP") then
+				if not Value then
+					-- Clean up properly
+					for _, Object in Existing:GetChildren() do
+						if Object:IsA("BoxHandleAdornment") then
+							Object.Transparency = 1
+						elseif Object:IsA("BillboardGui") then
+							Object.Enabled = false
+						end
+					end
+					task.delay(1, function()
+						if Existing and Existing.Parent then
+							Existing:Destroy()
+						end
+					end)
+				end
+			end
+		end
+
+		-- Then create new ESP for mobs if enabled
+		if Value then
+			for _, Mob: Model in workspace.Alive:GetChildren() do
+				MobESP(Mob)
+			end
 		end
 	end,
 })
 
-HandleConnection(workspace.Alive.ChildAdded:Connect(MobESP), "MobESP")
+-- Improved mob spawning handler
+local function OnMobAdded(Mob)
+	if not Mob:IsA("Model") then
+		return
+	end
+
+	-- Wait a short time for attributes to load
+	task.delay(0.1, function()
+		if Flags.MobESP and Flags.MobESP.CurrentValue then
+			MobESP(Mob)
+		end
+	end)
+end
+
+-- Connect to ChildAdded event
+HandleConnection(workspace.Alive.ChildAdded:Connect(OnMobAdded), "MobESP")
+
+-- Apply to existing mobs
+for _, Mob in workspace.Alive:GetChildren() do
+	if Mob:IsA("Model") then
+		OnMobAdded(Mob)
+	end
+end
 
 Tab:CreateSection("Effects")
 
